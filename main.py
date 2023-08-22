@@ -26,9 +26,7 @@ logger.addHandler(handler)
 
 # Initialize Client and connect to Binance
 from binance.client import Client
-api_key = settings.api_key
-api_secret = settings.api_secret
-client = Client(api_key, api_secret)
+client = Client()
 
 # StochasticRSI Function
 def Stoch(close,high,low, smoothk, smoothd, n):
@@ -39,7 +37,7 @@ def Stoch(close,high,low, smoothk, smoothd, n):
     return K, D
 
 #################################### Logging #################################################
-logger.info("Date                    Close         RSI           %K             %D")
+logger.info("Date                    Close         RSI           %K             %D             EMA_200             EMA_40")
 info = logging.Formatter('%(asctime)s %(message)s ','%Y-%m-%d %H:%M:%S')
 handler.setFormatter(info)
 logger.addHandler(handler)
@@ -48,10 +46,10 @@ logger.addHandler(handler)
 # Main program
 while True:
     # ping client to avoid timeout
-    client = Client(api_key, api_secret)
+    client = Client()
 
     # Get Binance Data into dataframe
-    candles = client.get_klines(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_1MINUTE)
+    candles = client.get_klines(symbol='SOLUSDT', interval=Client.KLINE_INTERVAL_15MINUTE)
     df = pd.DataFrame(candles)
     df.columns=['timestart','open','high','low','close','?','timeend','?','?','?','?','?']
     df.timestart = [datetime.datetime.fromtimestamp(i/1000) for i in df.timestart.values]
@@ -78,14 +76,19 @@ while True:
     newestcandleRSI = df.rsi.astype(str).iloc[-1] #gets last rsi
     newestcandleK = df.MyStochrsiK.astype(str).iloc[-1] #gets last rsi
     newestcandleD = df.MyStochrsiD.astype(str).iloc[-1] #gets last rsi
+    ema_200 = df['close'].ewm(span=200, adjust=False).mean().astype(str).iloc[-1] #200 SMA
+    ema_40 = df['close'].ewm(span=40, adjust=False).mean().astype(str).iloc[-1] #40 SMA
 
     #Sleeps every 29 seconds and wakes up to post to logger.
     t = datetime.datetime.utcnow()
     sleeptime = (t.second)
-    if sleeptime == 0 or sleeptime ==30:
+    if sleeptime == 0 or sleeptime ==900:
         logger.info(newestcandleclose + " "
                     + newestcandleRSI + " "
                     + newestcandleK + " "
-                    + newestcandleD )
-        time.sleep(28)
+                    + newestcandleD + " "
+                    + ema_200 + " "
+                    + ema_40
+                    )
+        time.sleep(898)
 ##############################################################################################
